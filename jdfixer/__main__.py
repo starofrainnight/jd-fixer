@@ -4,13 +4,17 @@
 """Console script for jd-fixer."""
 
 import click
+from os import PathLike
+from .jdfixer import JDFixer
+
 
 @click.command()
-def main(args=None):
+@click.argument("target_dir")
+def main(target_dir: PathLike):
     """Console script for jd-fixer."""
-    click.echo("Replace this message by putting your code into "
-               "jdfixer.__main__.main")
-    click.echo("See click documentation at http://click.pocoo.org/")
+    fixer = JDFixer(target_dir)
+    for context in fixer.iterfix():
+        pass
 
 
 if __name__ == "__main__":
