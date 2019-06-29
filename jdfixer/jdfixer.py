@@ -108,6 +108,11 @@ class JDFixer(object):
                 issues.append(Issue(int(matched.group(1)), matched.group(2)))
         return issues
 
+    def _iterfiles(self):
+        for root, __, files in os.walk(self._target_dir, topdown=False):
+            for filename in files:
+                yield os.path.join(root, filename)
+
     def iterfix(self):
         for fixer in self._dirfixers:
             yield FixingContext(
@@ -122,83 +127,77 @@ class JDFixer(object):
                 target_dir=self._target_dir,
             )
 
-        for root, __, files in os.walk(self._target_dir, topdown=False):
-            for filename in files:
-                if not fnmatch(filename, "*.java"):
-                    continue
+        for apath in self._iterfiles():
+            if not fnmatch(apath, "*.java"):
+                continue
 
-                apath = os.path.join(root, filename)
-                with open(apath, "r", encoding="utf-8") as f:
-                    content = f.read()
+            with open(apath, "r", encoding="utf-8") as f:
+                content = f.read()
 
-                orig_content = content
+            orig_content = content
 
-                for fixer in self._srcfixers:
+            for fixer in self._srcfixers:
+                try:
+                    yield FixingContext(
+                        status=FixingStatus.BEFORE,
+                        fixer=fixer,
+                        content=content,
+                    )
+                    content = fixer.fix(context)
+                    yield FixingContext(
+                        status=FixingStatus.AFTER, fixer=fixer, content=content
+                    )
+
+                except NotMatchedConditionError as e:
+                    yield FixingContext(
+                        status=FixingStatus.FAILED, fixer=fixer, exc=e
+                    )
+
+            if content != orig_content:
+                with open(apath, "w", encoding="utf-8") as f:
+                    content = f.write(content)
+
+        for apath in self._iterfiles():
+            if not fnmatch(apath, "*.java"):
+                continue
+
+            issues = self._get_issues(apath)
+
+            with open(apath, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            orig_content = content
+            lines = content.splitlines()
+            for issue in issues:
+                line = lines[issue.line_no]
+                orig_line = line
+                for fixer in self._issuelinefixers:
                     try:
                         yield FixingContext(
                             status=FixingStatus.BEFORE,
                             fixer=fixer,
-                            content=content,
+                            line=line,
+                            issue=issue.msg,
                         )
-                        content = fixer.fix(context)
+                        line = fixer.fix(line, issue.msg)
                         yield FixingContext(
                             status=FixingStatus.AFTER,
                             fixer=fixer,
-                            content=content,
+                            line=line,
+                            issue=issue.msg,
                         )
-
                     except NotMatchedConditionError as e:
                         yield FixingContext(
                             status=FixingStatus.FAILED, fixer=fixer, exc=e
                         )
+                        continue
 
-                if content != orig_content:
-                    with open(apath, "w", encoding="utf-8") as f:
-                        content = f.write(content)
+                if line != orig_line:
+                    lines[issue.line_no] = line
 
-        for root, __, files in os.walk(self._target_dir, topdown=False):
-            for filename in files:
-                if not fnmatch(filename, "*.java"):
-                    continue
+            content = "\n".join(lines)
 
-                apath = os.path.join(root, filename)
-                issues = self._get_issues(apath)
-
-                with open(apath, "r", encoding="utf-8") as f:
-                    content = f.read()
-
-                orig_content = content
-                lines = content.splitlines()
-                for issue in issues:
-                    line = lines[issue.line_no]
-                    orig_line = line
-                    for fixer in self._issuelinefixers:
-                        try:
-                            yield FixingContext(
-                                status=FixingStatus.BEFORE,
-                                fixer=fixer,
-                                line=line,
-                                issue=issue.msg,
-                            )
-                            line = fixer.fix(line, issue.msg)
-                            yield FixingContext(
-                                status=FixingStatus.AFTER,
-                                fixer=fixer,
-                                line=line,
-                                issue=issue.msg,
-                            )
-                        except NotMatchedConditionError as e:
-                            yield FixingContext(
-                                status=FixingStatus.FAILED, fixer=fixer, exc=e
-                            )
-                            continue
-
-                    if line != orig_line:
-                        lines[issue.line_no] = line
-
-                content = "\n".join(lines)
-
-                if content != orig_content:
-                    with open(apath, "w", encoding="utf-8") as f:
-                        f.write(content)
+            if content != orig_content:
+                with open(apath, "w", encoding="utf-8") as f:
+                    f.write(content)
 
