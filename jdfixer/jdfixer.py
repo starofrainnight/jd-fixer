@@ -161,43 +161,47 @@ class JDFixer(object):
             if not fnmatch(apath, "*.java"):
                 continue
 
-            issues = self._get_issues(apath)
+            while True:
+                issues = self._get_issues(apath)
 
-            with open(apath, "r", encoding="utf-8") as f:
-                content = f.read()
+                with open(apath, "r", encoding="utf-8") as f:
+                    content = f.read()
 
-            orig_content = content
-            lines = content.splitlines()
-            for issue in issues:
-                line = lines[issue.line_no]
-                orig_line = line
-                for fixer in self._issuelinefixers:
-                    try:
-                        yield FixingContext(
-                            status=FixingStatus.BEFORE,
-                            fixer=fixer,
-                            line=line,
-                            issue=issue.msg,
-                        )
-                        line = fixer.fix(line, issue.msg)
-                        yield FixingContext(
-                            status=FixingStatus.AFTER,
-                            fixer=fixer,
-                            line=line,
-                            issue=issue.msg,
-                        )
-                    except NotMatchedConditionError as e:
-                        yield FixingContext(
-                            status=FixingStatus.FAILED, fixer=fixer, exc=e
-                        )
-                        continue
+                orig_content = content
+                lines = content.splitlines()
+                for issue in issues:
+                    line = lines[issue.line_no]
+                    orig_line = line
+                    for fixer in self._issuelinefixers:
+                        try:
+                            yield FixingContext(
+                                status=FixingStatus.BEFORE,
+                                fixer=fixer,
+                                line=line,
+                                issue=issue.msg,
+                            )
+                            line = fixer.fix(line, issue.msg)
+                            yield FixingContext(
+                                status=FixingStatus.AFTER,
+                                fixer=fixer,
+                                line=line,
+                                issue=issue.msg,
+                            )
+                        except NotMatchedConditionError as e:
+                            yield FixingContext(
+                                status=FixingStatus.FAILED, fixer=fixer, exc=e
+                            )
+                            continue
 
-                if line != orig_line:
-                    lines[issue.line_no] = line
+                    if line != orig_line:
+                        lines[issue.line_no] = line
 
-            content = "\n".join(lines)
+                content = "\n".join(lines)
 
-            if content != orig_content:
-                with open(apath, "w", encoding="utf-8") as f:
-                    f.write(content)
+                if content != orig_content:
+                    with open(apath, "w", encoding="utf-8") as f:
+                        f.write(content)
+                else:
+                    # Loop until all issues are fixed
+                    break
 
