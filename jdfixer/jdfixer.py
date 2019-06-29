@@ -13,6 +13,7 @@ from .dirfixer import DirFixer
 from .srcfixer import SrcFixer
 from .issuelinefixer import IssueLineFixer
 from .variabledefinedfixer import VariableDefinedFixer
+from .incompatibleboolfixer import IncompatibleBoolFixer
 from .exceptions import NotMatchedConditionError
 from .common import Issue
 from .fixer import Fixer
@@ -75,6 +76,7 @@ class JDFixer(object):
         self._target_dir: PathLike = target_dir
 
         self.register_issuelinefixer(VariableDefinedFixer())
+        self.register_issuelinefixer(IncompatibleBoolFixer())
 
     @property
     def target_dir(self):
