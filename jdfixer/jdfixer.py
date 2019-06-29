@@ -12,6 +12,7 @@ from subprocess import run
 from .dirfixer import DirFixer
 from .srcfixer import SrcFixer
 from .issuelinefixer import IssueLineFixer
+from .conflictpackagedirfixer import ConflictPackageDirFixer
 from .variabledefinedfixer import VariableDefinedFixer
 from .incompatibleboolfixer import IncompatibleBoolFixer
 from .exceptions import NotMatchedConditionError
@@ -75,6 +76,7 @@ class JDFixer(object):
         self._issuelinefixers: List[IssueLineFixer] = list()
         self._target_dir: PathLike = target_dir
 
+        self.register_dirfixer(ConflictPackageDirFixer())
         self.register_issuelinefixer(VariableDefinedFixer())
         self.register_issuelinefixer(IncompatibleBoolFixer())
 
