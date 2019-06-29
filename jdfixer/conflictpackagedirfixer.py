@@ -4,6 +4,7 @@ import os
 import shutil
 from os import PathLike
 from pathlib import Path
+from fnmatch import fnmatch
 from .dirfixer import DirFixer
 
 

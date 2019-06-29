@@ -2,13 +2,14 @@
 
 """Main module."""
 
+import re
 import os.path
 from enum import Enum, auto
 from fnmatch import fnmatch
 from os import PathLike
 from typing import List
 from pathlib import Path
-from subprocess import run
+from subprocess import run, PIPE, DEVNULL
 from .dirfixer import DirFixer
 from .srcfixer import SrcFixer
 from .issuelinefixer import IssueLineFixer
@@ -198,7 +199,7 @@ class JDFixer(object):
 
                 content = "\n".join(lines)
 
-                if content != orig_content:
+                if content.strip() != orig_content.strip():
                     with open(apath, "w", encoding="utf-8") as f:
                         f.write(content)
                 else:
